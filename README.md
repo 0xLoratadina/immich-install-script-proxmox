@@ -24,8 +24,8 @@ Este tutorial guía paso a paso la instalación de [Immich](https://github.com/i
 - Dataset de datos: `DataDell/immich-data`
 - Contraseña de root CT: `immserver`
 - Contraseña de bases de datos: `immserver-db`
-- IP (asignada por DHCP): p. ej. `192.168.1.92`
-- Puerto de acceso Immich: `http://192.168.1.92:2283`
+- IP (asignada por DHCP): p. ej. `192.168.1.xx`
+- Puerto de acceso Immich: `http://192.168.1.xx:2283`
 
 ---
 
@@ -151,7 +151,7 @@ http://[IP_del_contenedor]:2283
 Ejemplo:
 
 ```
-http://192.168.1.92:2283
+http://192.168.x.xx:2283
 ```
 
 ---

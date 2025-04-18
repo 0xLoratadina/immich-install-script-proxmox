@@ -161,34 +161,34 @@ http://192.168.1.92:2283
 apt update && apt install -y openssh-server
 ```
 
-## Habilita el servicio para que inicie automáticamente
+Habilita el servicio para que inicie automáticamente
 ```
 systemctl enable ssh
 ```
 
-## Inicia el servicio ahora mismo
+Inicia el servicio ahora mismo
 ```
 systemctl start ssh
 ```
 
-## Verifica que esté corriendo
+Verifica que esté corriendo
 ```
 systemctl status ssh
 
 ```
 
-## Si no te permite entrar modifica el sshd_config
+Si no te permite entrar modifica el sshd_config
 ```
 nano /etc/ssh/sshd_config
 ```
 
-## Asegúrate de que estas líneas estén presentes y sin # al inicio:
+Asegúrate de que estas líneas estén presentes y sin # al inicio:
 
 ```
 PermitRootLogin yes
 PasswordAuthentication yes
 ```
-## Luego reinicia el servicio:
+Luego reinicia el servicio:
 ```
 systemctl restart ssh
 ```

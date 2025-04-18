@@ -1,10 +1,11 @@
-# 🚀 Instalación de Immich en Proxmox con LXC y ZFS
 
-Este tutorial guía paso a paso la instalación de [Immich](https://github.com/immich-app/immich), un sistema de gestión de fotos/videos con reconocimiento automático, utilizando:
+# 🚀 Instalación de Immich en Proxmox con ZFS (modo espejo)
+
+Este tutorial guía la instalación de [Immich](https://github.com/immich-app/immich), usando:
 
 - 🌧️ Contenedor LXC no privilegiado (Debian 12)
 - 🧠 Docker + Docker Compose
-- 📦 Dataset ZFS personalizado (`DataDell/immich-data`)
+- 📦 Dataset ZFS `DataDell/immich-data` (en disco espejo)
 - 🔐 Contraseñas personalizadas
 
 ---
@@ -12,26 +13,27 @@ Este tutorial guía paso a paso la instalación de [Immich](https://github.com/i
 ## 🔧 Requisitos previos
 
 - Proxmox con ZFS habilitado
-- Plantilla Debian 12 descargada (`debian-12-standard_12.7-1_amd64.tar.zst`)
+- Dataset ZFS `DataDell/immich-data` (modo espejo)
+- Plantilla: `debian-12-standard_12.7-1_amd64.tar.zst`
 - Acceso root al nodo
 
 ---
 
-## 📝 Detalles de configuración
+## 📝 Configuración base
 
-- Nombre del contenedor: `immich`
-- VMID del CT: `100`
-- Dataset de datos: `DataDell/immich-data`
-- Contraseña de root CT: `immserver`
-- Contraseña de bases de datos: `immserver-db`
-- IP (asignada por DHCP): p. ej. `192.168.1.xx`
-- Puerto de acceso Immich: `http://192.168.1.xx:2283`
+| Elemento              | Valor                    |
+|-----------------------|--------------------------|
+| Nombre del contenedor | `immich`                 |
+| VMID del CT           | `100`                    |
+| Dataset de datos      | `DataDell/immich-data`   |
+| Contraseña root CT    | `immserver`              |
+| Contraseña DB         | `immserver-db`           |
+| IP (DHCP)             | `192.168.1.xx`           |
+| Puerto de Immich      | `2283`                   |
 
 ---
 
-## 🧱 Paso 1: Crea un ZFS con el nombre DataDell con los siguientes datos y luego en la shell de root inserta este comando dataset ZFS
-
-![image](https://github.com/user-attachments/assets/942aa373-c897-4f80-9956-2441e9910cc8)
+## 📦 Paso 1: Crear dataset ZFS
 
 ```bash
 zfs create DataDell/immich-data
@@ -57,7 +59,7 @@ pct create 100 local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst \
 
 ---
 
-## 🔗 Paso 3: Montar dataset al contenedor
+## 🔗 Paso 3: Montar el dataset ZFS en el contenedor
 
 ```bash
 pct set 100 -mp0 /DataDell/immich-data,mp=/root/immich-app
@@ -66,14 +68,14 @@ chown -R 100000:100000 /DataDell/immich-data
 
 ---
 
-## 🚀 Paso 4: Iniciar contenedor e instalar Docker
+## 🚀 Paso 4: Iniciar el contenedor e instalar Docker
 
 ```bash
 pct start 100
 pct enter 100
 ```
 
-### Dentro del contenedor:
+Dentro del contenedor:
 
 ```bash
 apt update && apt upgrade -y
@@ -90,14 +92,14 @@ apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker
 
 ---
 
-## 📅 Paso 5: Descargar y configurar Immich
+## 📁 Paso 5: Descargar y configurar Immich
 
 ```bash
 cd /root/immich-app
 wget -O docker-compose.yml https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
 wget -O .env https://github.com/immich-app/immich/releases/latest/download/example.env
 
-# Establece la ubicación de la carpeta de subida
+# Ajustar la ruta de subida
 sed -i 's|^UPLOAD_LOCATION=.*|UPLOAD_LOCATION=./library|' .env
 
 # Crear carpeta de subida
@@ -105,44 +107,30 @@ mkdir -p library
 chown -R 1000:1000 .
 ```
 
-> Opcional: puedes editar el archivo `.env` manualmente con `nano .env` y cambiar los valores de contraseña por defecto:
-
-```
+Modificar en `.env`:
+```env
 DB_PASSWORD=immserver-db
 POSTGRES_PASSWORD=immserver-db
 ```
 
----
+Establecer plantilla de almacenamiento recomendada en Immich (en UI o .env si aplica):
 
-## 📦 Paso 6: Iniciar Immich
-
-```bash
-docker compose up -d
+```env
+UPLOAD_LOCATION={{y}}/{{y}}-{{MM}}-{{dd}}/{{filename}}
 ```
 
 ---
 
-## ✅ Verificar estado
+## ▶️ Paso 6: Iniciar Immich
 
 ```bash
+docker compose up -d
 docker compose ps
 ```
 
 ---
 
-## 🔐 Contraseñas
-
-| Elemento             | Usuario      | Contraseña        |
-|----------------------|--------------|-------------------|
-| Contenedor LXC       | root         | `immserver`       |
-| PostgreSQL Database  | postgres     | `immserver-db`    |
-| Immich Admin inicial | Se define al iniciar sesión en el navegador |
-
----
-
-## 🌐 Acceso a Immich
-
-Abre tu navegador y visita:
+## 🌐 Acceder a Immich
 
 ```
 http://[IP_del_contenedor]:2283
@@ -151,43 +139,45 @@ http://[IP_del_contenedor]:2283
 Ejemplo:
 
 ```
-http://192.168.x.xx:2283
+http://192.168.1.88:2283
 ```
 
 ---
 
+## 🔐 Contraseñas
+
+| Servicio       | Usuario      | Contraseña       |
+|----------------|--------------|------------------|
+| Contenedor     | root         | `immserver`      |
+| PostgreSQL     | postgres     | `immserver-db`   |
+| Immich admin   | definido al iniciar sesión      |
+
+---
+
 ## SSH dentro del contenedor
-```
+
+```bash
 apt update && apt install -y openssh-server
-```
-
-Habilita el servicio para que inicie automáticamente
-```
 systemctl enable ssh
-```
-
-Inicia el servicio ahora mismo
-```
 systemctl start ssh
-```
-
-Verifica que esté corriendo
-```
 systemctl status ssh
 ```
 
-Si no te permite entrar modifica el sshd_config
-```
+Editar configuración si es necesario:
+
+```bash
 nano /etc/ssh/sshd_config
 ```
 
-Asegúrate de que estas líneas estén presentes y sin # al inicio:
+Asegurarse que estén sin `#`:
 
 ```
 PermitRootLogin yes
 PasswordAuthentication yes
 ```
-Luego reinicia el servicio:
-```
+
+Reiniciar SSH:
+
+```bash
 systemctl restart ssh
 ```

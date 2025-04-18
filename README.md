@@ -173,11 +173,8 @@ systemctl start ssh
 
 ## Verifica que esté corriendo
 ```
-```
-
-##
-```
 systemctl status ssh
+
 ```
 
 ## Si no te permite entrar modifica el sshd_config
